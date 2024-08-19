@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dự Đoán Thời Tiết</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <!-- jQuery UI CSS -->
+    <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            background: linear-gradient(to bottom, #4A90E2, #345B9D);
+            font-family: 'Montserrat', sans-serif;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('static/images/background.jpg') no-repeat center center/cover;
+            filter: blur(8px);
+            z-index: -1;
+        }
+
+        .container {
+            background: rgba(0, 51, 102, 0.8);
+            padding: 20px 40px;
+            border-radius: 30px;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+            max-width: 1200px;
+            width: 90%;
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+            animation: slideIn 1s forwards;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: normal;
+            color: #fff;
+            border-radius: 20px;
+        }
+
+        .form-group input {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: none;
+            text-align: center;
+        }
+
+        .btn-model {
+            background-color: #003366;
+            border: none;
+            font-size: 18px;
+            padding: 10px 20px;
+            margin: 5px;
+            display: inline-block;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-radius: 30px;
+        }
+
+        .btn-model:hover {
+            background-color: #004080;
+        }
+
+        .btn-model.active {
+            background-color: #fff;
+            color: #003366;
+        }
+
+        .btn-date-nav {
+            background-color: #003366;
+            border: none;
+            font-size: 18px;
+            padding: 10px 15px;
+            margin: 5px;
+            display: inline-block;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-date-nav:hover {
+            background-color: #004080;
+        }
+
+        .result {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .result.show {
+            opacity: 1;
+        }
+
+        .forecast {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            flex: 0 0 70%;
+            margin-right: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .summary {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            flex: 0 0 30%;
+            transition: transform 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .forecast-boxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .forecast-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 20px;
+            flex: 1 1 calc(50% - 20px);
+            text-align: center;
+            animation: fadeIn 0.5s forwards;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 110px;
+        }
+
+        .forecast-box .feature {
+            font-size: 14px;
+            font-weight: normal;
+        }
+
+        .forecast-box .value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .loading-icon {
+            display: none;
+        }
+
+        .forecast-box.loading .loading-icon {
+            display: block;
+        }
+
+        .forecast-box.loading .feature,
+        .forecast-box.loading .value {
+            display: none;
+        }
+
+        #loading {
+            margin-top: 20px;
+            color: #fff;
+            font-style: italic;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #loading.show {
+            opacity: 1;
+        }
+
+        .message {
+            margin-top: 20px;
+            color: #fff;
+            font-style: italic;
+        }
+
+        #summary-text {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            height: 100%;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .forecast-box {
+            animation: fadeIn 0.5s forwards, slideInUp 0.5s forwards;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .icon-temp {
+            color: #ffcc00; /* Màu cho các biểu tượng nhiệt độ */
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .icon-pressure {
+            color: #3399ff; /* Màu cho các biểu tượng áp suất */
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .icon-soil {
+            color: #66cc66; /* Màu cho các biểu tượng nhiệt độ đất */
+            font-size: 24px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="container">
+        <div class="header">
+            <h2><i class="fas fa-cloud-sun"></i> Dự đoán Thời tiết</h2>
+        </div>
+        <div class="form-inline justify-content-center mb-4">
+            <div class="form-group d-flex align-items-center">
+                <button type="button" class="btn btn-date-nav" id="prev-day" aria-label="Ngày trước"><i class="fas fa-chevron-left"></i></button>
+                <input type="text" id="datepicker" class="form-control ml-2" required>
+                <button type="button" class="btn btn-date-nav ml-2" id="next-day" aria-label="Ngày sau"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+        <div class="form-group">
+            <button class="btn btn-model" data-model="lstm">LSTM</button>
+            <button class="btn btn-model" data-model="gru">GRU</button>
+            <button class="btn btn-model" data-model="deepar">DeepAR</button>
+            <button class="btn btn-model" data-model="transformer">Transformer</button>
+        </div>
+        <div id="loading" class="message">Vui lòng chọn mô hình và ngày cần dự đoán...</div>
+        <div id="result" class="result">
+            <div class="forecast">
+                <div class="forecast-boxes">
+                    <div class="forecast-box">
+                        <i class="fas fa-thermometer-half icon-temp"></i>
+                        <div class="feature">Nhiệt độ Trung bình trong ngày</div>
+                        <div class="value" id="temperature_2m">--</div>
+                    </div>
+                    <div class="forecast-box">
+                        <i class="fas fa-thermometer-half icon-temp"></i>
+                        <div class="feature">Nhiệt độ Cảm nhận Trung bình trong ngày</div>
+                        <div class="value" id="apparent_temperature">--</div>
+                    </div>
+                    <div class="forecast-box">
+                        <i class="fas fa-thermometer-half icon-soil"></i>
+                        <div class="feature">Nhiệt độ Đất Trung bình trong ngày</div>
+                        <div class="value" id="soil_temperature_0_to_7cm">--</div>
+                    </div>
+                    <div class="forecast-box">
+                        <i class="fas fa-tint icon-pressure"></i>
+                        <div class="feature">Lượng nước Bốc hơi Trung bình trong ngày</div>
+                        <div class="value" id="et0_fao_evapotranspiration">--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="summary">
+                <div id="summary-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#datepicker").datepicker({
+                dateFormat: "yy-mm-dd",
+                onSelect: function(dateText) {
+                    $("#loading").removeClass("show").text("Vui lòng chọn mô hình...");
+                    $("#result").removeClass("show");
+                    $(".btn-model").removeClass("active");
+                }
+            }).datepicker("setDate", new Date());
+
+            $("#prev-day").click(function () {
+                var date = $("#datepicker").datepicker("getDate");
+                date.setDate(date.getDate() - 1);
+                $("#datepicker").datepicker("setDate", date);
+                $("#loading").removeClass("show").text("Vui lòng chọn mô hình...");
+                $("#result").removeClass("show");
+                $(".btn-model").removeClass("active");
+            });
+    
+            $("#next-day").click(function () {
+                var date = $("#datepicker").datepicker("getDate");
+                date.setDate(date.getDate() + 1);
+                $("#datepicker").datepicker("setDate", date);
+                $("#loading").removeClass("show").text("Vui lòng chọn mô hình...");
+                $("#result").removeClass("show");
+                $(".btn-model").removeClass("active");
+            });
+    
+            $(".btn-model").click(function () {
+                var selectedModel = $(this).data("model");
+                var selectedDate = $("#datepicker").val();
+    
+                $(".btn-model").removeClass("active");
+                $(this).addClass("active");
+    
+                $("#loading").addClass("show").text("Đang dự đoán, vui lòng đợi...");
+    
+                $.ajax({
+                    url: "/predict",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        model: selectedModel,
+                        date: selectedDate
+                    }),
+                    success: function (response) {
+                        if (response.error) {
+                            $("#loading").text(response.error);
+                            $("#result").removeClass("show");
+                        } else {
+                            $("#loading").removeClass("show");
+                            $("#result").addClass("show");
+    
+                            // Lấy giá trị dự đoán và làm tròn đến 2 chữ số thập phân
+                            var temperature_2m = parseFloat(response.forecast[0]).toFixed(2);
+                            var apparent_temperature = parseFloat(response.forecast[1]).toFixed(2);
+                            var soil_temperature_0_to_7cm = parseFloat(response.forecast[2]).toFixed(2);
+                            var et0_fao_evapotranspiration = parseFloat(response.forecast[3]).toFixed(2);
+    
+                            $("#temperature_2m").text(temperature_2m + " °C");
+                            $("#apparent_temperature").text(apparent_temperature + " °C");
+                            $("#soil_temperature_0_to_7cm").text(soil_temperature_0_to_7cm + " °C");
+                            $("#et0_fao_evapotranspiration").text(et0_fao_evapotranspiration + " mm");
+    
+                            var summary = "Dự đoán thời tiết ngày " + selectedDate + " với mô hình " + selectedModel.toUpperCase() + ".";
+                            $("#summary-text").text(summary);
+                        }
+                    },
+                    error: function () {
+                        $("#loading").text("Có lỗi xảy ra. Vui lòng thử lại!");
+                        $("#result").removeClass("show");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
